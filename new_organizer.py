@@ -15,6 +15,7 @@ api_key = 'F35F04BF0C63B299'
 DB = api.TVDB(api_key)
 
 VIDEOTYPE = ('avi', 'mkv', 'mp4')
+ARTICLES = ("a", "an", "the", "at", "by", "for", "in", "of", "on", "to", "up", "and", "as", "but", "or", "nor")
 
 
 # TODO: Create Episode class
@@ -23,22 +24,37 @@ class Episode(object):
     A TV Show episode.  Episodes have the following properties:
 
     Attributes:
-        series:   Name of the TV Show
-        season:   Season number
-        episode:  Episode number
-        name:     Episode name
-        filename: Filename for the episode
+        series:     Name of the TV Show
+        season:     Season number
+        episode:    Episode number
+        name:       Episode name
+        series_dir: Name of directory for TV Show
+        filename:   Filename for the episode
     """
-    # TODO: resolve issue of multiepisode filename
+    # TODO: resolve issue of multiepisode filename (http://stackoverflow.com/questions/24347431/regex-pattern-for-multi-episode-file-names?rq=1)
 
-    def __init__(self, series, season, episode):
-        self.series = series
+    def __init__(self, show, season, episode):
+        self.show_obj = search_for_show(show)
+        self.epi_obj = self.show_obj[int(season)][int(episode)]
+
+        self.series = self.show_obj.SeriesName
         self.season = season
         self.episode = episode
+        self.name = self.epi_obj.EpisodeName
 
-    def get_filename(self):
-        # TODO: If series begins with an article, reformat
-        pass
+    def get_series_directory(self):
+        # TODO: If series begins with an article, reformat (http://stackoverflow.com/questions/19283864/moving-definite-article-to-the-end-of-a-string-in-python)
+        if self.series.lower().startswith(ARTICLES):
+            split = self.series.split()
+            # If series ends with a year (e.g. "(2014)"), place article after title, but before year
+            m = re.search("\(\d{4}\)$", self.series)
+            if m:
+                self.series_dir = "{0}, {1} {2}".format(" ".join(split[1:-1]), split[0], split[-1])
+            else:
+                self.series_dir = "{0}, {1}".format(" ".join(split[1:]), split[0])
+        else:
+            self.series_dir = self.series
+        return self.series_dir
 
 
 # TODO: Open TV Shows folder and print contents
@@ -55,7 +71,7 @@ def walker(root):
             # Only look at video files
             if filename.endswith(VIDEOTYPE):
                 print(filename)  # TODO: Use debug
-                filename_to_episode(filename)
+                episode = filename_to_episode(filename)
 
         # if dir_path != root:
             # print(os.path.basename(dir_path))  # Current folder name
@@ -84,19 +100,19 @@ def walker(root):
 
 def filename_to_episode(filename):
     # TODO: Break up filename into parts (show, season, episode)
-    s = re.match("(.+)\.S([0-9]+)E([0-9]+)", filename)
-    print(s)
-    print(s.group(1))
+    s = re.match("(.+)\.?S([0-9]+)E([0-9]+)", filename)
+    # print(s)
+    # print(s.group(1))
     show = s.group(1).replace(".", " ")
-    print(show)
-    result = search_for_show(show)
-    series = result.SeriesName
-    print(s.group(2))
+    # print(show)
+    # result = search_for_show(show)
+    # series = result.SeriesName
+    # print(s.group(2))
     season = s.group(2)
-    print(s.group(3))
+    # print(s.group(3))
     episode = s.group(3)
 
-    return Episode(series, season, episode)
+    return Episode(show, season, episode)
 
 
 def search_for_show(request, language="en"):
