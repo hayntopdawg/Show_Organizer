@@ -33,14 +33,15 @@ class Episode(object):
     """
     # TODO: resolve issue of multiepisode filename (http://stackoverflow.com/questions/24347431/regex-pattern-for-multi-episode-file-names?rq=1)
 
-    def __init__(self, show, season, episode):
+    def __init__(self, show, season, episode, filetype):
         self.show_obj = search_for_show(show)
         self.epi_obj = self.show_obj[int(season)][int(episode)]
 
         self.series = self.show_obj.SeriesName
-        self.season = season
-        self.episode = episode
+        self.season = self.epi_obj.SeasonNumber
+        self.episode = self.epi_obj.EpisodeNumber
         self.name = self.epi_obj.EpisodeName
+        self.filetype = filetype
 
     def get_series_directory(self):
         # TODO: If series begins with an article, reformat (http://stackoverflow.com/questions/19283864/moving-definite-article-to-the-end-of-a-string-in-python)
@@ -55,6 +56,47 @@ class Episode(object):
         else:
             self.series_dir = self.series
         return self.series_dir
+
+    def get_season_directory(self):
+        # TODO: add year
+        return "Season {0:02d}".format(self.season)
+
+    def get_filename(self):
+        return "{0} S{1:02d}E{2:02d} - {3}.{4}".format(self.series, self.season, self.episode, self.name, self.filetype)
+
+
+def filename_to_episode(filename):
+    # TODO: Break up filename into parts (show, season, episode, filetype)
+    # TODO: Use debug instead of print statements
+    s = re.match("(.+)\.?S([0-9]+)E([0-9]+).+\.(.+)", filename)
+    # print(s)
+    # print(s.group(1))
+    show = s.group(1).replace(".", " ")
+    # print(show)
+    # result = search_for_show(show)
+    # series = result.SeriesName
+    # print(s.group(2))
+    season = s.group(2)
+    # print(s.group(3))
+    episode = s.group(3)
+    filetype = s.group(4)
+
+    return Episode(show, season, episode, filetype)
+
+
+def search_for_show(request, language="en"):
+    # TODO: If show not in results list
+
+    results = DB.search(request, language)  # should use a try except for the case that a show is not found
+
+    # TODO: Make this check a pop-up window
+    if len(results) > 1:
+        for num, result in enumerate(results):
+            print(num, result.SeriesName)
+        n = input("Enter number for correct show: ")
+        return results[int(n)]
+    else:
+        return results[0]
 
 
 # TODO: Open TV Shows folder and print contents
@@ -96,38 +138,6 @@ def walker(root):
 
             # break
         # break
-
-
-def filename_to_episode(filename):
-    # TODO: Break up filename into parts (show, season, episode)
-    s = re.match("(.+)\.?S([0-9]+)E([0-9]+)", filename)
-    # print(s)
-    # print(s.group(1))
-    show = s.group(1).replace(".", " ")
-    # print(show)
-    # result = search_for_show(show)
-    # series = result.SeriesName
-    # print(s.group(2))
-    season = s.group(2)
-    # print(s.group(3))
-    episode = s.group(3)
-
-    return Episode(show, season, episode)
-
-
-def search_for_show(request, language="en"):
-    # TODO: If show not in results list
-
-    results = DB.search(request, language)  # should use a try except for the case that a show is not found
-
-    # TODO: Make this check a pop-up window
-    if len(results) > 1:
-        for num, result in enumerate(results):
-            print(num, result.SeriesName)
-        n = input("Enter number for correct show: ")
-        return results[int(n)]
-    else:
-        return results[0]
 
 
 if __name__ == "__main__":
